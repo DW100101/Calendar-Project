@@ -35,4 +35,4 @@ Able to add, edit, and delete events for a given day. Options for all day or tim
 
   6. 
   open with http://localhost:5173
->>>>>>> baf64b3 (Initial commit)
+
