@@ -1,0 +1,155 @@
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  min-width: 600px;
+  padding: 10px;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 10px 0px;
+}
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  padding: 20px;
+  min-width: 200px;
+  border-radius: 8px;
+  width: 15%;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  animation: popup 0.2s ease-out;
+  transition: transform 0.2s ease-in-out;
+}
+.modal-title {
+  font-weight: bold;
+  font-size: 1.4rem;
+  margin: 0;
+}
+.modal-date {
+  font-weight: 500;
+  color: #313030;
+  font-size: 1.4rem;
+  margin: 0;
+  padding-left: 10px;
+}
+.modal-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 25px;
+  cursor: pointer;
+}
+.name-input {
+  display: block;
+  margin-bottom: 5px;
+  margin: 10px 0px;
+}
+.time-input {
+  display: block;
+  margin-bottom: 5px;
+  width: 50%;
+  margin: 10px 0px;
+}
+.color-label {
+  font-weight: normal;
+}
+.color-picker {
+  background-color: var(--color);
+  border: none;
+  border-radius: 4px;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  margin-left: 5px;
+  margin-bottom: 5px;
+  margin-top: -5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.color-picker:hover {
+  opacity: 0.9;
+}
+.color-picker.unselected {
+  opacity: 0.5;
+}
+.color-picker.unselected:hover {
+  opacity: 0.7;
+}
+.color-options button.selected {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+.color-picker-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 10px 0px;
+}
+.add-delete-btn-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-btn {
+  padding: 8px;
+  font-size: 1rem;
+  background-color: hsl(150, 80%, 95%);
+  border: 1px solid hsl(150, 80%, 30%);
+  border-radius: 5px;
+  width: 100%;
+  margin-top: 0.3rem;
+  margin-right: 0.2rem;
+}
+.add-btn:hover {
+  background-color: hsl(150, 80%, 90%);
+}
+.delete-btn {
+  background-color: hsl(0, 75%, 95%);
+  border: 1px solid hsl(0, 75%, 60%);
+  color: hsl(0, 75%, 10%);
+  border-radius: 5px;
+  margin-top: 0.3rem;
+  padding: 8px;
+  font-size: 1rem;
+  width: 100%;
+  margin-left: 0.2rem;
+}
+.delete-btn:hover {
+  background-color: hsl(0, 75%, 90%);
+}
+.view-more-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+@keyframes popup {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.modal.closing .modal-content {
+  transform: scale(0.9);
+}
+.modal.closing {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
