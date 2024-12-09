@@ -1,4 +1,4 @@
-import "./Styles/CalendarHeader.css";
+
 
 interface CalendarHeaderProps {
   month: string;

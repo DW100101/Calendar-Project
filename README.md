@@ -19,7 +19,7 @@ Able to add, edit, and delete events for a given day. Options for all day or tim
 
  1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/your-repository.git (PUT MY GITHUB HERE)
+   git clone https://github.com/DW100101/Calendar-Project.git
 
   2.
   cd your-repository
