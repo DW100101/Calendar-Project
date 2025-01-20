@@ -1,3 +1,7 @@
+body, html{
+  font-family: 'Inter', sans-serif;
+}
+
 .modal {
   position: fixed;
   top: 0;
@@ -9,9 +13,14 @@
   align-items: center;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 9999;
-  min-width: 600px;
+  width: 100%;
+  height: 100%;
   padding: 10px;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -19,27 +28,74 @@
   width: 100%;
   margin: 10px 0px;
 }
-.modal-content {
+
+.modal-content  {
   display: flex;
   flex-direction: column;
   background-color: white;
   padding: 20px;
-  min-width: 200px;
+  min-width: 300px;
   border-radius: 8px;
-  width: 15%;
+  width: 90%;
+  max-width: 325px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  animation: popup 0.2s ease-out;
-  transition: transform 0.2s ease-in-out;
+  animation: popup 0.3s ease-out;
+  transform: scale(1); 
+  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
+.view-more-events-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.view-more-modal-content {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  padding: 20px;
+  min-width: 300px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 325px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  animation: popup 0.3s ease-out;
+  transform: scale(1); 
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.view-more-events-modal.closing {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.view-more-modal-content.closing {
+  animation: popupClose 0.3s ease-out forwards;
+}
+
 .modal-title {
-  font-weight: bold;
-  font-size: 1.4rem;
+  font-weight: 500;
+  font-size: 1.6rem;
   margin: 0;
 }
 .modal-date {
-  font-weight: 500;
+  font-weight: 400;
   color: #313030;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   margin: 0;
   padding-left: 10px;
 }
@@ -49,35 +105,60 @@
   justify-content: center;
 }
 .close-btn {
+  font-weight: 400;
   background: none;
   border: none;
-  font-size: 25px;
+  font-size: 1.4rem;
   cursor: pointer;
 }
 .name-input {
   display: block;
   margin-bottom: 5px;
-  margin: 10px 0px;
+  margin: 15px 0px;
+  margin-right: .8rem;
+ 
 }
+
+.name-input input {
+  margin-top: 5px;
+  width: 100% !important;
+}
+
+.modal-time{
+  width: 100%;
+  margin-top: 7px;
+}
+.all-day-checkbox input{
+  margin-right: 9px;
+}
+
+
 .time-input {
   display: block;
   margin-bottom: 5px;
-  width: 50%;
-  margin: 10px 0px;
+  min-width: 80px;
+  width: 80%;
+  margin: 5px 0px;
+}
+.time-input input {
+  width: 90%; 
+  height: 25px;
+  margin-top: 5px;
 }
 .color-label {
   font-weight: normal;
+  margin-bottom: 0px;
 }
 .color-picker {
   background-color: var(--color);
   border: none;
   border-radius: 4px;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.7rem;
+  height: 1.7rem;
   padding: 0;
-  margin-left: 5px;
+  margin-left: 4px;
   margin-bottom: 5px;
-  margin-top: -5px;
+  margin-top: 0px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -97,7 +178,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin: 10px 0px;
+  margin: 5px 0px;
 }
 .add-delete-btn-container {
   display: flex;
@@ -146,10 +227,59 @@
     opacity: 1;
   }
 }
-.modal.closing .modal-content {
-  transform: scale(0.9);
+@keyframes popupClose {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
 }
+
+.modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all; 
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
 .modal.closing {
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  opacity: 0; 
+  transition: opacity 0.3s ease-out;
 }
+
+.modal-content.closing {
+  animation: popupClose 0.3s ease-out forwards;
+}
+
+.error-tooltip {
+  position: absolute;
+  background-color: hsl(0, 75%, 60%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  transform: translateY(0px);
+  opacity: 1;
+  visibility: visible;
+  z-index: 1000;
+}
+
+.error-input:focus + .error-tooltip {
+  visibility: hidden;
+  transform: translateY(0);
+}
+
+.input-container {
+  position: relative;
+  width: 100%;
+}
+
+.error-border {
+  border: 1px solid hsl(0, 75%, 60%);
+}
+

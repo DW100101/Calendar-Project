@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./Styles/EventModal.css";
+import { CalendarEventType } from "./MainCalendar";
 
 interface EventModalProps {
   date: Date;
   onClose: () => void;
-  onSave: (event: Event) => void;
+  onSave: (event: CalendarEventType) => void;
   onDelete: () => void;
-  editingEvent: Event | null;
+  editingEvent: CalendarEventType | null;
 }
 
 interface Event {
@@ -28,58 +29,104 @@ export function EventModal({
 }: EventModalProps) {
   const colorOptions = [
     "hsl(0, 75%, 60%)",
-    "	hsl(150, 80%, 30%)",
-    "	hsl(200, 80%, 50%)",
+    "hsl(150, 80%, 30%)",
+    "hsl(200, 80%, 50%)",
   ];
-
-  const [title, setTitle] = useState<string>(editingEvent?.title || "");
-  const [allDay, setAllDay] = useState<boolean>(editingEvent?.allDay || false);
-  const [startTime, setStartTime] = useState<string>(
-    editingEvent?.startTime || ""
-  );
-  const [endTime, setEndTime] = useState<string>(editingEvent?.endTime || "");
-  const [selectedColor, setSelectedColor] = useState<string>(
+  const [title, setTitle] = useState(editingEvent?.title || "");
+  const [allDay, setAllDay] = useState(editingEvent?.allDay || false);
+  const [startTime, setStartTime] = useState(editingEvent?.startTime || "");
+  const [endTime, setEndTime] = useState(editingEvent?.endTime || "");
+  const [selectedColor, setSelectedColor] = useState(
     editingEvent?.color || colorOptions[0]
   );
   const [timeError, setTimeError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
   const [isClosing, setIsClosing] = useState(false);
+
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
 
   const handleModalClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
+  };
+
+  const handleAnimationEnd = () => {
+    if (isClosing) {
+      setIsVisible(false);
       onClose();
-    }, 300);
+      setIsClosing(false);
+    }
+  };
+
+  const handleOutsideClick = (e: MouseEvent) => {
+    if (
+      modalContentRef.current &&
+      !modalContentRef.current.contains(e.target as Node)
+    ) {
+      handleModalClose();
+    }
+  };
+
+  const stopPropagation = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
   };
 
   useEffect(() => {
-    if (editingEvent) {
-      setTitle(editingEvent.title);
-      setAllDay(editingEvent.allDay || false);
-      setStartTime(editingEvent.startTime || "00:00");
-      setEndTime(editingEvent.endTime || "00:00");
-      setSelectedColor(editingEvent.color || colorOptions[0]);
-    }
-  }, [editingEvent]);
+    const handleOutsideClickNative = (e: MouseEvent) => {
+      handleOutsideClick(e);
+    };
 
-  const validateTimes = () => {
-    if (!allDay) {
-      if (!startTime || !endTime) {
-        setTimeError("Both start time and end time are required.");
-        return false;
-      }
-      const start = new Date(`1970-01-01T${startTime}:00`);
-      const end = new Date(`1970-01-01T${endTime}:00`);
-      if (end <= start) {
-        setTimeError("End time must be after start time.");
-        return false;
-      }
+    window.addEventListener("mousedown", handleOutsideClickNative);
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClickNative);
+    };
+  }, []);
+
+  const handleEscapeKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleModalClose();
     }
-    setTimeError(null);
-    return true;
   };
 
+  useEffect(() => {
+    const modalElement = modalRef.current;
+    if (modalElement) {
+      modalElement.addEventListener("animationend", handleAnimationEnd);
+    }
+
+    window.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      if (modalElement) {
+        modalElement.removeEventListener("animationend", handleAnimationEnd);
+      }
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isClosing]);
+
   const handleSave = () => {
-    if (!validateTimes()) return;
+    setTitleError(null);
+    setTimeError(null);
+
+    if (!title.trim()) {
+      setTitleError("Event name is required.");
+      return;
+    }
+
+    if (!allDay) {
+      if (!startTime || !endTime) {
+        setTimeError("Start time and end time are required.");
+        return;
+      }
+
+      if (startTime >= endTime) {
+        setTimeError("End time must be after start time.");
+        return;
+      }
+    }
+
     const newEvent: Event = {
       id: editingEvent?.id || Date.now(),
       date,
@@ -93,104 +140,181 @@ export function EventModal({
     onSave(newEvent);
   };
 
+
+  const firstFocusableElementRef = useRef<HTMLButtonElement | null>(null);
+const lastFocusableElementRef = useRef<HTMLButtonElement | null>(null);
+
+  const trapFocus = (e: KeyboardEvent) => {
+    if (!modalRef.current) return;
+    const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+    if (e.key === "Tab") {
+      if (e.shiftKey && document.activeElement === firstFocusable) {
+        
+        e.preventDefault();
+        lastFocusable?.focus();
+      } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+        
+        e.preventDefault();
+        firstFocusable?.focus();
+      }
+    }
+  };
+
+  useEffect(() => {
+    
+    window.addEventListener("keydown", trapFocus);
+
+    
+    if (modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      );
+      focusableElements[0]?.focus();
+    }
+
+    return () => {
+      window.removeEventListener("keydown", trapFocus);
+    };
+  }, []);
+
   return (
-    <div className={`modal ${isClosing ? "closing" : ""}`}>
-      <div className="modal-content">
-        <div className="modal-header" style={{}}>
-          <h2 className="modal-title">
-            {editingEvent ? "Edit Event" : "Add Event"}
-          </h2>
-          <h2 className="modal-date">
-            {(editingEvent?.date || date)?.toLocaleDateString("en-US", {
-              month: "2-digit",
-              day: "2-digit",
-              year: "2-digit",
-            })}
-          </h2>
-          <button className="close-btn" onClick={handleModalClose}>
-            x
-          </button>
-        </div>
-        <label className="name-input">
-          Name
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            style={{ display: "block", width: "100%" }}
-          />
-        </label>
+    isVisible && (
+      <div
+        ref={modalRef}
+        className={`modal ${isClosing ? "closing" : ""}`}
+        onMouseDown={
+          handleOutsideClick as unknown as React.MouseEventHandler<HTMLDivElement>
+        }
+      >
+        <div
+          ref={modalContentRef}
+          className={`modal-content ${isClosing ? "closing" : ""}`}
+          onMouseDown={stopPropagation}
+        >
+          <div className="modal-header" tabIndex={-1} >
+            <h2 className="modal-title">
+              {editingEvent ? "Edit Event" : "Add Event"}
+            </h2>
+            <button className="close-btn" onClick={handleModalClose} ref={firstFocusableElementRef}>
+              x
+            </button>
+          </div>
 
-        <div style={{ display: "flex", alignItems: "center" }}></div>
+          <label className="name-input">
+            Name
+            <div className="input-container">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (e.target.value.trim()) {
+                    setTitleError(null);
+                  }
+                }}
+                className={titleError ? "error-input error-border" : ""}
+              />
+              {titleError && <div className="error-tooltip">{titleError}</div>}
+            </div>
+          </label>
 
-        <label>
-          <input
-            type="checkbox"
-            checked={allDay}
-            onChange={(e) => setAllDay(e.target.checked)}
-          />
-          All Day?
-        </label>
-        {!allDay && (
-          <>
+          {/* All Day Option */}
+          <label className="all-day-checkbox">
+            <input
+              type="checkbox"
+              checked={allDay}
+              onChange={(e) => {
+                setAllDay(e.target.checked);
+                if (e.target.checked) {
+                  setStartTime("");
+                  setEndTime("");
+                  setTimeError(null);
+                }
+              }}
+            />
+            All Day?
+          </label>
+
+          {!allDay && (
             <div className="modal-time">
               <label className="time-input">
                 Start Time:
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className={timeError ? "error-input" : ""}
-                  style={{ display: "block" }}
-                />
+                <div className="input-container">
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => {
+                      setStartTime(e.target.value);
+                      if (endTime && e.target.value >= endTime) {
+                        setTimeError("End time must be after start time.");
+                      } else {
+                        setTimeError(null);
+                      }
+                    }}
+                    className={timeError ? "error-input error-border" : ""}
+                  />
+                </div>
               </label>
+
               <label className="time-input">
                 End Time:
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className={timeError ? "error-input" : ""}
-                  style={{ display: "block" }}
-                />
-                {timeError && (
-                  <span className="error-message" style={{ color: "red" }}>
-                    {timeError}
-                  </span>
-                )}
+                <div className="input-container">
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => {
+                      setEndTime(e.target.value);
+                      if (startTime && e.target.value <= startTime) {
+                        setTimeError("End time must be after start time.");
+                      } else {
+                        setTimeError(null);
+                      }
+                    }}
+                    className={timeError ? "error-input error-border" : ""}
+                  />
+                  {timeError && (
+                    <div className="error-tooltip">{timeError}</div>
+                  )}
+                </div>
               </label>
             </div>
-          </>
-        )}
-        <div className="color-picker-container">
-          <label className="color-label">Color</label>
-          <div className="color-options">
-            {colorOptions.map((color) => (
-              <button
-                key={color}
-                className={`color-picker ${
-                  selectedColor === color ? "selected" : "unselected"
-                }`}
-                style={{
-                  backgroundColor: color,
-                }}
-                onClick={() => setSelectedColor(color)}
-              />
-            ))}
+          )}
+
+          <div className="color-picker-container">
+            <label className="color-label">Color</label>
+            <div className="color-options">
+              {colorOptions.map((color) => (
+                <button
+                  key={color}
+                  className={`color-picker ${
+                    selectedColor === color ? "selected" : "unselected"
+                  }`}
+                  style={{
+                    backgroundColor: color,
+                  }}
+                  onClick={() => setSelectedColor(color)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="add-delete-btn-container">
+            <button className="add-btn" onClick={handleSave}  ref={lastFocusableElementRef}>
+              {editingEvent ? "Edit" : "Add"}
+            </button>
+            {editingEvent && (
+              <button className="delete-btn" onClick={onDelete}>
+                Delete
+              </button>
+            )}
           </div>
         </div>
-
-        <div className="add-delete-btn-container">
-          <button className="add-btn" onClick={handleSave}>
-            {editingEvent ? "Edit" : "Add"}
-          </button>
-          {editingEvent && (
-            <button className="delete-btn" onClick={onDelete}>
-              Delete
-            </button>
-          )}
-        </div>
       </div>
-    </div>
+    )
   );
 }

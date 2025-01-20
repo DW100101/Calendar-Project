@@ -5,10 +5,18 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  font-family: 'Inter', sans-serif; 
 }
 body {
   min-width: 500px;
   height: 100%;
+  
+}
+
+.app {
+  max-width: 1500px;
+  margin: 0 auto; 
+  padding: 0 20px; 
 }
 .calendar-wrapper {
   display: flex;
@@ -21,10 +29,12 @@ body {
   box-sizing: border-box;
   overflow: auto;
   min-width: 500px;
+  max-width: 1500px;
+  margin:  0 auto;
 }
 .calendar-header {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   height: 40px;
   display: flex;
@@ -51,7 +61,7 @@ body {
 .next-month,
 .header-date {
   margin: 0;
-  padding: 0 5px;
+  padding: 0px  5px;
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -68,7 +78,7 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 3px;
-  margin-left: 3px;
+  margin-left: 0px;
   margin-right: 5px;
 }
 .today-button:hover {
@@ -80,8 +90,8 @@ body {
 .next-month {
   background: none;
   border: none;
-  padding: 3px;
-  font-size: 16px;
+  padding: 4px;
+  font-size: 1.1rem;
   height: 100%;
   line-height: 40px;
   cursor: pointer;
@@ -98,15 +108,16 @@ body {
   overflow: hidden;
   min-height: 120px;
 }
-
 .day-number {
   font-size: 14px;
   z-index: 1;
-  margin-bottom: -0.4rem;
+  margin-bottom: -0.3rem;
+  
 }
 .calendar-day .day-name {
   margin-top: 0.3rem;
-  margin-bottom: -8px;
+  margin-bottom: -6px;
+  
 }
 .day-name {
   font-size: 12px;
@@ -115,19 +126,26 @@ body {
   color: rgba(0, 0, 0, 0.3);
   margin: none;
 }
+.events-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
 .events {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  overflow: hidden;
-  width: 100%;
-  height: 80%;
+  max-height: calc(100% - 5px); 
+  overflow: hidden; 
 }
 .event {
   display: flex;
   align-items: center;
   margin-right: 5px;
-  margin-bottom: 5px;
+  margin-top: 6px;
   height: 1.5rem;
   border-radius: 5px;
   text-align: left;
@@ -145,13 +163,15 @@ body {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  margin-right: 3%;
+  margin-right: .5rem;
   flex-shrink: 0;
   background-color: var(--bullet-color, #000);
   vertical-align: middle;
+  padding-left: 0%;
 }
 .event-time {
-  margin-right: 3px;
+  margin-right: 0.4rem;
+  flex-shrink: 0;
   font-size: 0.9rem;
   color: #555;
 }
@@ -162,6 +182,13 @@ body {
   white-space: nowrap;
   font-size: 0.9rem;
 }
+.events-list{
+  margin: 5px;
+  cursor: pointer;
+}
+.calendar-event{
+  margin-bottom: 5px;
+}
 .show-more-container {
   position: absolute;
   bottom: 5px;
@@ -171,77 +198,71 @@ body {
 .show-more-btn {
   background: none;
   border: none;
-  color: #000;
+  color: #2c2c2c;
   cursor: pointer;
   padding: 5px 5px;
+  padding-bottom: 0px;
   font-size: 12px;
-  text-decoration: underline;
-  margin-bottom: 0.1rem;
+  font-style: bold;
+  margin-bottom: 0px;
 }
 .all-day {
   background-color: var(--event-color);
   color: #fff;
-  padding: 10px;
-  border-radius: 4px;
+  padding: 3px;
+  border-radius: 5px;
 }
 .timed {
   border-left: 5px solid var(--event-color);
-  padding-left: 10px;
+  padding-left: 1px;
   color: var(--event-color);
 }
-.events .event:hover {
+.event .event:hover {
   opacity: 0.8;
 }
 .add-event-btn {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  padding: 1px;
+  top: 2px;
+  right: 6px;
   background-color: transparent;
   color: black;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   cursor: pointer;
   display: none;
+  visibility: hidden;
 }
 .calendar-day:hover .add-event-btn {
   display: block;
 }
 .non-current-month {
-  background-color: #dadce0;
+  background-color: #dadce0; 
 }
+
 .calendar-day .day-number {
   padding: 5px 10px;
   display: inline-block;
   text-align: center;
   line-height: 20px;
 }
-.calendar-day .day-number.current-day {
-  color: white !important;
-  opacity: 1 !important;
+.current-day .day-number {
   border-radius: 50%;
-  font-weight: bold;
-  display: inline-block;
-  line-height: 5px;
-  margin-bottom: 2px;
-  margin-top: 6px;
-  position: relative;
-}
-.calendar-day .day-number.current-day::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-35%, -50%) translateX(-2px);
   background-color: hsl(200, 80%, 50%);
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  z-index: -1;
+  padding: .5%;
+  padding-left: 2%;
+  padding-right: 2%;
+  margin-top: 3%;
+  color: white !important;
 }
 .calendar-day.past-day .day-number {
   opacity: 0.5;
   pointer-events: none;
   color: rgba(0, 0, 0, 0.3);
+}
+.non-current-month.past-day .day-number {
+  opacity: 0.5;
+  color: rgba(0, 0, 0, 0.3); 
 }
 .calendar-day .day-number.current-day {
   opacity: 1;
@@ -272,3 +293,21 @@ body {
   font-size: 0.8em;
   margin-left: 10px;
 }
+@media (max-width: 650px) {
+  .calendar-wrapper {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;  
+    margin: 0;   
+  }
+  .app {
+    padding: 0; 
+  }
+}
+.calendar-day:hover .add-event-btn,
+.calendar-day:focus-within .add-event-btn,
+.add-event-btn:focus {
+  display: block; 
+  visibility: visible; 
+}
+

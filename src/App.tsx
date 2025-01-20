@@ -1,13 +1,13 @@
-import { useEffect } from 'react';
 import { MainCalendar } from './Components/MainCalendar';
+import { Helmet } from "react-helmet";
+
 
 function App() {
-  
-    useEffect(() => {
-      document.title = "Calendar Project";
-    }, []);
-    return (
-    <div className="App">
+  return (
+    <div className="app">
+      <Helmet>
+        <title>Calendar Project</title>
+      </Helmet>
       <MainCalendar />
     </div>
   );

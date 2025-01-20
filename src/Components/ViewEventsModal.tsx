@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Event } from "./MainCalendar";
+import { useState, useEffect, useRef } from "react";
+import { CalendarEvent } from "./CalendarEvent";
+import { CalendarEventType } from "./MainCalendar";
 import "./Styles/EventModal.css";
 
 interface ViewEventsModalProps {
-  events: Event[];
+  events: CalendarEventType[];
   onClose: () => void;
-  onEditEvent: (event: Event) => void;
+  onEditEvent: (event: CalendarEventType) => void;
 }
 
 export function ViewEventsModal({
@@ -15,82 +16,170 @@ export function ViewEventsModal({
 }: ViewEventsModalProps) {
   const allDayEvents = events.filter((event) => event.allDay);
   const timedEvents = events.filter((event) => !event.allDay);
+  const [isVisible, setIsVisible] = useState(true);
   const [isClosing, setIsClosing] = useState(false);
-
   const date = events.length > 0 ? events[0].date : null;
+
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
 
   const handleModalClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
   };
 
-  const handleEventClick = (event: Event) => {
-    onClose();
-    onEditEvent(event);
+  const handleAnimationEnd = () => {
+    if (isClosing) {
+      setIsVisible(false);
+      onClose();
+      setIsClosing(false);
+    }
   };
+
+  const handleEventClick = (event: CalendarEventType) => {
+    onEditEvent(event);
+    handleModalClose();
+  };
+
+  const handleOutsideClick = (e: MouseEvent) => {
+    if (
+      modalContentRef.current &&
+      !modalContentRef.current.contains(e.target as Node)
+    ) {
+      handleModalClose();
+    }
+  };
+
+  const stopPropagation = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+  };
+
+  useEffect(() => {
+    const handleOutsideClickNative = (e: MouseEvent) => {
+      handleOutsideClick(e);
+    };
+
+    window.addEventListener("mousedown", handleOutsideClickNative);
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClickNative);
+    };
+  }, []);
+
+  const handleEscapeKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      handleModalClose();
+    }
+  };
+
+  useEffect(() => {
+    const modalElement = modalRef.current;
+    if (modalElement) {
+      modalElement.addEventListener("animationend", handleAnimationEnd);
+    }
+
+    window.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      if (modalElement) {
+        modalElement.removeEventListener("animationend", handleAnimationEnd);
+      }
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [isClosing]);
+
+  const firstFocusableElementRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusableElementRef = useRef<HTMLDivElement | null>(null);
+
+  const trapFocus = (e: KeyboardEvent) => {
+    if (!modalRef.current) return;
+
+    const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length === 0) return;
+
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+    if (e.key === "Tab") {
+      if (e.shiftKey && document.activeElement === firstFocusable) {
+        e.preventDefault();
+        lastFocusable.focus();
+      } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+        e.preventDefault();
+        firstFocusable.focus();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+
+    focusableElements?.[0]?.focus();
+
+    window.addEventListener("keydown", trapFocus);
+
+    return () => {
+      window.removeEventListener("keydown", trapFocus);
+    };
+  }, [events]);
 
   return (
-    <div className={`modal ${isClosing ? "closing" : ""}`}>
-      <div className="modal-content">
-        <div className="view-more-header">
-          <h3 className="modal-date">
-            {date
-              ? new Date(date).toLocaleDateString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  year: "2-digit",
-                })
-              : "No Date Selected"}
-          </h3>
-          <button className="close-btn" onClick={handleModalClose}>
-            x
-          </button>
-        </div>
-
-        {allDayEvents.length > 0 && (
-          <div className="events-list">
-            {allDayEvents.map((event) => (
-              <div
-                key={event.id}
-                className="event"
-                style={{ backgroundColor: event.color }}
-                onClick={() => handleEventClick(event)}
-              >
-                <h4>{event.title}</h4>
-              </div>
-            ))}
+    isVisible && (
+      <div
+        ref={modalRef}
+        className={`view-more-events-modal ${isClosing ? "closing" : ""}`}
+        onMouseDown={
+          handleOutsideClick as unknown as React.MouseEventHandler<HTMLDivElement>
+        }
+      >
+        <div
+          ref={modalContentRef}
+          className={`view-more-modal-content ${isClosing ? "closing" : ""}`}
+          onMouseDown={stopPropagation}
+        >
+          <div className="view-more-header">
+            <h3 className="modal-date">
+              {date
+                ? new Date(date).toLocaleDateString("en-US", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "2-digit",
+                  })
+                : "No Date Selected"}
+            </h3>
+            <button
+              className="close-btn"
+              onClick={handleModalClose}
+              ref={firstFocusableElementRef}
+            >
+              x
+            </button>
           </div>
-        )}
 
-        {timedEvents.length > 0 && (
-          <div className="events-list">
-            {timedEvents.map((event) => {
-              const startTime = new Date(
-                `1970-01-01T${event.startTime}`
-              ).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              });
-
-              return (
-                <div
-                  key={event.id}
-                  className="event"
-                  style={{ backgroundColor: event.color }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <h4>{event.title}- </h4>
-
-                  <h4>{startTime}</h4>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+          <div className="events-list" ref={lastFocusableElementRef}>
+  {allDayEvents.concat(timedEvents).map((event) => (
+    <div
+      key={event.id}
+      className="event-item"
+      tabIndex={0} 
+      onClick={() => handleEventClick(event)} 
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault(); // 
+          handleEventClick(event); 
+        }
+      }}
+    >
+      <CalendarEvent event={event} onClick={handleEventClick} />
     </div>
+  ))}
+</div>
+        </div>
+      </div>
+    )
   );
 }

@@ -1,21 +1,22 @@
-import  { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { CalendarHeader } from "./CalendarHeader";
 import { EventModal } from "./EventModal";
 import { ViewEventsModal } from "./ViewEventsModal";
+import { CalendarEvent } from "./CalendarEvent";
 import "./Styles/MainCalendar.css";
 import {
   getDays,
+  updateDayHeights,
   getFirstDay,
   getDaysBefore,
   getDaysAfter,
   sortEvents,
-  formatTimeTo12Hour,
+  datesAreEqual,
 } from "./HelperFunctions";
-
 
 const LOCAL_STORAGE_KEY = "calendarEvents";
 
-export interface Event {
+export interface CalendarEventType {
   id: number;
   title: string;
   description?: string;
@@ -26,68 +27,90 @@ export interface Event {
   date: Date;
 }
 
-interface CalendarDay {
-  date: Date;
-  isCurrentMonth: boolean;
-  isPast: boolean;
-  isToday?: boolean;
-}
-
 export function MainCalendar() {
   const [date, setDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>(() => {
+  const [events, setEvents] = useState<CalendarEventType[]>(() => {
     const storedEvents = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedEvents) {
-      return JSON.parse(storedEvents).map((event: Event) => ({
+      return JSON.parse(storedEvents).map((event: CalendarEventType) => ({
         ...event,
         date: new Date(event.date),
       }));
     }
     return [];
   });
+
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
+
   const [isViewEventsModalOpen, setIsViewEventsModalOpen] = useState(false);
-  const [modalEvents, setModalEvents] = useState<Event[]>([]);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [selectedEvent] = useState<Event | null>(null);
+  const [modalEvents, setModalEvents] = useState<CalendarEventType[]>([]);
+  const [editingEvent, setEditingEvent] = useState<CalendarEventType | null>(
+    null
+  );
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(
+    null
+  );
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]); 
+
   const [dayHeights, setDayHeights] = useState<{ [key: number]: number }>({});
   const year = date.getFullYear();
   const month = date.getMonth();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const calendarDayRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  useEffect(() => {
+  const calendarDays = useMemo(() => {
     const daysInMonth = getDays(year, month);
     const firstDayOfMonth = getFirstDay(year, month);
     const daysBefore = getDaysBefore(year, month, firstDayOfMonth);
     const totalDays = daysBefore.length + daysInMonth.length;
     const daysAfter = getDaysAfter(totalDays);
-    const newCalendarDays = [
-      ...daysBefore.map((day) => ({
-        date: new Date(year, month - 1, day),
-        isCurrentMonth: false,
-        isPast: true,
-      })),
-      ...daysInMonth.map((day) => ({
-        date: new Date(year, month, day),
-        isCurrentMonth: true,
-        isPast: new Date(year, month, day) < new Date(),
-        isToday:
-          new Date(year, month, day).toDateString() ===
-          new Date().toDateString(),
-      })),
-      ...daysAfter.map((day) => ({
-        date: new Date(year, month + 1, day),
-        isCurrentMonth: false,
-        isPast: false,
-      })),
+
+    const normalizeDate = (date: Date): Date => {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    };
+
+    const today = normalizeDate(new Date());
+
+    return [
+      ...daysBefore.map((day) => {
+        const date = new Date(year, month - 1, day);
+        return {
+          date,
+          isPast: date < today,
+          isCurrentMonth: false,
+        };
+      }),
+      ...daysInMonth.map((day) => {
+        const date = new Date(year, month, day);
+        return {
+          date,
+          isPast: date < today,
+          isCurrentMonth: true,
+        };
+      }),
+      ...daysAfter.map((day) => {
+        const date = new Date(year, month + 1, day);
+        return {
+          date,
+          isPast: date < today,
+          isCurrentMonth: false,
+        };
+      }),
     ];
-    setCalendarDays(newCalendarDays);
   }, [year, month]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const getEventsForDate = (date: Date) => {
     const filteredEvents = events.filter((event) =>
@@ -97,18 +120,8 @@ export function MainCalendar() {
   };
 
   useEffect(() => {
-    updateDayHeights();
-  }, [calendarDays]);
-
-  const updateDayHeights = () => {
-    const heights: { [key: number]: number } = {};
-    calendarDayRefs.current.forEach((dayElement, index) => {
-      if (dayElement) {
-        heights[index] = dayElement.getBoundingClientRect().height;
-      }
-    });
-    setDayHeights(heights);
-  };
+    updateDayHeights(calendarDayRefs, setDayHeights);
+  }, [calendarDays, windowWidth]);
 
   useEffect(() => {
     console.log("isViewEventsModalOpen:", isViewEventsModalOpen);
@@ -144,14 +157,15 @@ export function MainCalendar() {
     setIsModalOpen(true);
   };
 
-  const handleEventClick = (event: Event) => {
+  const handleEventClick = (event: CalendarEventType) => {
     setEditingEvent(event);
     setSelectedDate(event.date);
+    setSelectedEvent(event);
     setIsModalOpen(true);
     setIsViewEventsModalOpen(false);
   };
 
-  const handleAddEvent = (event: Event) => {
+  const handleAddEvent = (event: CalendarEventType) => {
     if (editingEvent) {
       setEvents((prevEvents) =>
         prevEvents.map((e) =>
@@ -176,22 +190,66 @@ export function MainCalendar() {
     }
   };
 
-  const handleViewEventsModal = (events: Event[]) => {
+  const handleViewEventsModal = (events: CalendarEventType[]) => {
     setModalEvents(events);
     setIsViewEventsModalOpen(true);
   };
 
-  const datesAreEqual = (date1: Date, date2: Date): boolean => {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const focusedDayIndex = calendarDayRefs.current.findIndex(
+      (dayElement) => dayElement === document.activeElement
     );
+    if (focusedDayIndex === -1) return;
+
+    switch (e.key) {
+      case "ArrowLeft":
+        if (focusedDayIndex > 0) {
+          calendarDayRefs.current[focusedDayIndex - 1]?.focus();
+        }
+        break;
+      case "ArrowRight":
+        if (focusedDayIndex < calendarDayRefs.current.length - 1) {
+          calendarDayRefs.current[focusedDayIndex + 1]?.focus();
+        }
+        break;
+      case "ArrowUp":
+        if (focusedDayIndex >= 7) {
+          calendarDayRefs.current[focusedDayIndex - 7]?.focus();
+        }
+        break;
+      case "ArrowDown":
+        if (focusedDayIndex + 7 < calendarDayRefs.current.length) {
+          calendarDayRefs.current[focusedDayIndex + 7]?.focus();
+        }
+        break;
+      case "Enter":
+        if (calendarDayRefs.current[focusedDayIndex]) {
+          const selectedDate =
+            calendarDayRefs.current[focusedDayIndex]?.dataset.date;
+          setSelectedDate(new Date(selectedDate!));
+          setIsModalOpen(true);
+        }
+        break;
+      case "Escape":
+        setIsModalOpen(false);
+        break;
+    }
+  };
+
+  const [, setFocusedDay] = useState<Date | null>(null);
+
+  const handleDayFocus = (date: Date) => {
+    setFocusedDay(date);
   };
 
   return (
     <>
-      <div className="calendar-wrapper">
+      <div
+        className="calendar-wrapper"
+        aria-hidden={isModalOpen ? "true" : "false"}
+        tabIndex={isModalOpen ? -1 : 0}
+        onKeyDown={handleKeyDown}
+      >
         <CalendarHeader
           month={date.toLocaleString("default", { month: "long" })}
           year={year}
@@ -201,18 +259,13 @@ export function MainCalendar() {
         />
         <div className="calendar-container">
           {calendarDays.map((dayObj, index) => {
-            const { date, isCurrentMonth, isPast, isToday } = dayObj;
+            const { date, isCurrentMonth, isPast } = dayObj;
 
             const currentEvents = getEventsForDate(date);
 
             const dayHeight = dayHeights[index] || 0;
-            const eventsHeight = dayHeight * 1;
-            const eventHeight = dayHeight - 100;
-            const reservedSpaceForButton = 20;
-            const adjustedEventsHeight = eventsHeight - reservedSpaceForButton;
-            const maxVisibleEvents = Math.floor(
-              adjustedEventsHeight / eventHeight
-            );
+            const adjustedEventsHeight = dayHeight - 10;
+            const maxVisibleEvents = Math.floor(adjustedEventsHeight / 40);
 
             const visibleEvents = currentEvents.slice(0, maxVisibleEvents);
             const hasMoreEvents = currentEvents.length > maxVisibleEvents;
@@ -220,85 +273,96 @@ export function MainCalendar() {
             return (
               <div
                 key={index}
-                className={`calendar-day ${
-                  isCurrentMonth ? "current-month" : "non-current-month"
-                } ${datesAreEqual(date, new Date()) ? "current-day" : ""} ${
-                  isPast ? "past-day" : ""
-                }`}
-                onMouseEnter={() => setHoveredDay(date)}
-                onMouseLeave={() => setHoveredDay(null)}
-                onClick={() => handleDayClick(date)}
+                className={`calendar-day 
+                 ${isPast ? "past-day" : ""} 
+                 ${datesAreEqual(date, new Date()) ? "current-day" : ""} 
+                 ${isCurrentMonth ? "" : "non-current-month"}`}
                 ref={(el) => (calendarDayRefs.current[index] = el)}
+                tabIndex={0}
+                data-date={date.toISOString()}
+                onFocus={() => handleDayFocus(date)}
               >
                 {index < daysOfWeek.length && (
                   <span className="day-name">{daysOfWeek[date.getDay()]}</span>
                 )}
 
-                <span className={`day-number ${isToday ? "current-day" : ""}`}>
-                  {date.getDate()}
-                </span>
+                <span className="day-number">{date.getDate()}</span>
 
-                <div className="events">
-                  {visibleEvents.map((event, eventIndex) => (
-                    <div
-                      key={eventIndex}
-                      className={`event ${event.allDay ? "all-day" : "timed"}`}
-                      style={{
-                        backgroundColor: event.allDay
-                          ? event.color
-                          : "transparent",
-                        borderLeft: "none",
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEventClick(event);
-                      }}
-                    >
-                      {event.allDay ? (
-                        <span className="event-title">{event.title}</span>
-                      ) : (
-                        <>
-                          <span
-                            className="event-bullet"
-                            style={{
-                              backgroundColor: event.color || "#000",
-                            }}
-                          ></span>
-                          <span className="event-time">
-                            {formatTimeTo12Hour(event.startTime || "00:00")}
-                          </span>
-                          <span className="event-title">{event.title}</span>
-                        </>
-                      )}
+                <div className="events-container">
+                  <div className="events">
+                    {visibleEvents.map((event, eventIndex) => (
+                      <div
+                        key={eventIndex}
+                        className={`event ${
+                          event.allDay ? "all-day" : "timed"
+                        }`}
+                        style={{
+                          backgroundColor: event.allDay
+                            ? event.color
+                            : "transparent",
+                          borderLeft: "none",
+                        }}
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEventClick(event);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleEventClick(event);
+                          }
+                        }}
+                      >
+                        <CalendarEvent
+                          key={eventIndex}
+                          event={event}
+                          onClick={handleEventClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasMoreEvents && (
+                    <div className="show-more-container">
+                      <button
+                        className="show-more-btn"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewEventsModal(currentEvents);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleViewEventsModal(currentEvents);
+                          }
+                        }}
+                      >
+                        +{currentEvents.length - visibleEvents.length} More
+                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
 
-                {hasMoreEvents && (
-                  <div className="show-more-container">
-                    <button
-                      className="show-more-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewEventsModal(currentEvents);
-                      }}
-                    >
-                      +{currentEvents.length - visibleEvents.length} More
-                    </button>
-                  </div>
-                )}
+                {/* Add Event Button */}
 
-                {hoveredDay?.getTime() === date.getTime() && (
-                  <button
-                    className="add-event-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                <button
+                  className="add-event-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDayClick(date);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
                       handleDayClick(date);
-                    }}
-                  >
-                    +
-                  </button>
-                )}
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  +
+                </button>
               </div>
             );
           })}
@@ -338,13 +402,11 @@ export function MainCalendar() {
       )}
 
       {isViewEventsModalOpen && (
-        <div className="modal">
-          <ViewEventsModal
-            events={modalEvents}
-            onClose={() => setIsViewEventsModalOpen(false)}
-            onEditEvent={handleEventClick}
-          />
-        </div>
+        <ViewEventsModal
+          events={modalEvents}
+          onClose={() => setIsViewEventsModalOpen(false)}
+          onEditEvent={handleEventClick}
+        />
       )}
     </>
   );
